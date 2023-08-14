@@ -396,3 +396,6 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+Chess-Challenge/.idea/.idea.Chess-Challenge.dir/.idea/vcs.xml
+Chess-Challenge/.idea/.idea.Chess-Challenge.dir/.idea/indexLayout.xml
+Chess-Challenge/.idea/.idea.Chess-Challenge.dir/.idea/encodings.xml
