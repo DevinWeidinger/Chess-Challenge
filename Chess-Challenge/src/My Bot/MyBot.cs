@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Board = ChessChallenge.API.Board;
+using Move = ChessChallenge.API.Move;
 
 public class MyBot : IChessBot
 {
@@ -53,14 +55,27 @@ public class MyBot : IChessBot
             Console.WriteLine("Castling!");
             return castleMove;
         }
+        
+        switch (_myMoves.Count % 3)
+        {
+            case 0:
+                if (TrySafeHighValuedMove(moves, board, out var safeMove))
+                    return safeMove;
+                break;
+            case 1:
+                if(TryImprovePawnStructure(moves, board, out var pawnMove))
+                    return pawnMove; 
+                break;
+            case 2:
+                if(TryFirstSafeMove(moves, board, out var firstSafeMove))
+                    return firstSafeMove;
+                break;
+        }
 
         Move bestMove = default;
         var bestValue = int.MinValue;
         foreach (var move in moves)
         {
-            if(_myMoves.Count % 3 == 0 && move.MoveStrengthensPawnStructure(board))
-                return move;
-            
             board.MakeMove(move);
             var moveValue = -AlphaBeta(board, depth - 1, int.MinValue, int.MaxValue);
             board.UndoMove(move);
@@ -123,6 +138,33 @@ public class MyBot : IChessBot
         return output != default;
     }
     
+    private static bool TrySafeHighValuedMove(IEnumerable<Move> moves, Board board, out Move output)
+    {
+        output = default;
+        var highestValueMove = int.MinValue;
+        foreach(var move in moves.Where(m => board.SquareIsAttackedByOpponent(m.TargetSquare) == false))
+        {
+            var moveValue = move.MovePieceType.GetValue();
+            if (moveValue <= highestValueMove) continue;
+            highestValueMove = moveValue;
+            output = move;
+        }
+        return output != default;
+    }
+
+    private static bool TryFirstSafeMove(IEnumerable<Move> moves, Board board, out Move output)
+    {
+        output = moves.FirstOrDefault(m => board.SquareIsAttackedByOpponent(m.TargetSquare) == false);
+        return output != default;
+    }
+
+    private static bool TryImprovePawnStructure(IEnumerable<Move> moves, Board board, out Move output)
+    {
+        moves = moves.Where(m => m.MoveStrengthensPawnStructure(board));
+        output = moves.FirstOrDefault();
+        return output != default;
+    }
+    
     private static int AlphaBeta(Board board, int depth, int alpha, int beta)
     {
         if (depth == 0)
@@ -165,12 +207,12 @@ public static class Extensions
         if(move.MovePieceType != PieceType.Pawn)
             return false;
         
-        PieceList myPawns = board.GetPieceList(PieceType.Pawn, board.IsWhiteToMove);
-        Square target = move.TargetSquare;
+        var myPawns = board.GetPieceList(PieceType.Pawn, board.IsWhiteToMove);
+        var target = move.TargetSquare;
         foreach (var myPawn in myPawns)
         {
-            ulong attacks = BitboardHelper.GetPawnAttacks(myPawn.Square, myPawn.IsWhite);
-            ulong targetBit = 1UL << target.Index; //if target square is protected by pawn, return true
+            var attacks = BitboardHelper.GetPawnAttacks(myPawn.Square, myPawn.IsWhite);
+            var targetBit = 1UL << target.Index; //if target square is protected by pawn, return true
             if ((attacks & targetBit) != 0)
                 return true;
         }
